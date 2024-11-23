@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestor Financeiro Pessoal</title>
+    <script src="https://cdn.jsdelivr.net/npm/emoji-js@3.5.0/lib/emoji.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.11/jspdf.plugin.autotable.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+
+    <link href="style.css">
+</head>
+
+<body class="bg-gray-100">
+    <div class="min-h-screen">
+        <!-- Navbar -->
+        <nav class="bg-indigo-600 text-white shadow-lg">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between h-16 items-center">
+                    <div class="flex items-center">
+                        <i class="fas fa-wallet text-2xl mr-2"></i>
+                        <span class="text-xl font-semibold">Controle financeiro</span>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <button id="addTransactionBtn"
+                            class="bg-white text-indigo-600 px-4 py-2 rounded-md font-medium hover:bg-indigo-50 transition-colors">
+                            <i class="fas fa-plus mr-2"></i>Nova Transação
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <!-- Dashboard Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-gray-500 text-sm font-medium">Saldo Total</h3>
+                        <i class="fas fa-dollar-sign text-green-500"></i>
+                    </div>
+                    <p class="text-2xl font-bold text-gray-900 mt-2" id="totalBalance">R$ 0,00</p>
+                </div>
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-gray-500 text-sm font-medium">Receitas</h3>
+                        <i class="fas fa-arrow-up text-green-500"></i>
+                    </div>
+                    <p class="text-2xl font-bold text-green-600 mt-2" id="totalIncome">R$ 0,00</p>
+                </div>
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-gray-500 text-sm font-medium">Despesas</h3>
+                        <i class="fas fa-arrow-down text-red-500"></i>
+                    </div>
+                    <p class="text-2xl font-bold text-red-600 mt-2" id="totalExpenses">R$ 0,00</p>
+                </div>
+            </div>
+
+            <!-- Transactions List -->
+            <!-- Transactions List -->
+            <div class="bg-white rounded-lg shadow-md mb-8">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h2 class="text-lg font-medium text-gray-900 text-center">Transações Recentes</h2>
+                </div>
+                <div id="transactionsList" class="divide-y divide-gray-200 max-h-96 overflow-y-auto">
+                    <!-- Transactions will be added here dynamically -->
+                </div>
+            </div>
+
+            <!-- Seção de Gráficos -->
+            <div class="bg-white rounded-lg shadow-md mb-8 p-6">
+                <h2 class="text-lg font-medium text-gray-900 text-center mb-4">Análise de Gráficos</h2>
+                <canvas id="transactionsChart" width="400" height="200"></canvas>
+            </div>
+
+            <!-- Botões de Download e Exportação -->
+            <div class="flex justify-center space-x-4 mt-4">
+                <button id="downloadListBtn"
+                    class="bg-indigo-600 text-white px-4 py-2 rounded-md font-medium hover:bg-indigo-700 transition-colors">
+                    <i class="fas fa-download mr-2"></i>Download Lista
+                </button>
+                <button id="exportToWhatsappBtn"
+                    class="bg-green-600 text-white px-4 py-2 rounded-md font-medium hover:bg-green-700 transition-colors">
+                    <i class="fab fa-whatsapp mr-2"></i>Exportar para WhatsApp
+                </button>
+            </div>
+
+        </main>
+
+        <!-- Add Transaction Modal -->
+        <div id="transactionModal"
+            class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center">
+            <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-medium text-gray-900">Nova Transação</h3>
+                    <button id="closeModal" class="text-gray-400 hover:text-gray-500">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <form id="transactionForm" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Descrição</label>
+                        <input type="text" id="description" required
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Valor (R$)</label>
+                        <input type="number" id="amount" required step="0.01"
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Tipo</label>
+                        <select id="type" required
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                            <option value="income">Receita</option>
+                            <option value="expense">Despesa</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Categoria</label>
+                        <select id="category" required
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                            <option value="salary">Salário</option>
+                            <option value="food">Alimentação</option>
+                            <option value="transport">Transporte</option>
+                            <option value="housing">Moradia</option>
+                            <option value="entertainment">Lazer</option>
+                            <option value="other">Outros</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Data</label>
+                        <input type="date" id="date" required
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                    </div>
+                    <button type="submit"
+                        class="w-full bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition-colors">
+                        Adicionar Transação
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
