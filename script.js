@@ -187,21 +187,36 @@ function exportToPDF() {
     const { jsPDF } = window.jspdf;
     const pdf = new jsPDF();
 
+    // Configurações gerais
+    const pageHeight = pdf.internal.pageSize.height;
+    const marginTop = 20;
+    const marginBottom = 20;
+    const usableHeight = pageHeight - marginTop - marginBottom;
+    const columnWidths = [80, 50, 40]; // Largura das colunas: Descrição, Data, Valor
+    const rowHeight = 10; // Altura de cada linha
+    let y = marginTop;
+
     // Título do documento
     pdf.setFontSize(16);
-    pdf.text('Relatório de Transações', 105, 20, { align: 'center' });
+    pdf.text('Relatório de Transações', 105, y, { align: 'center' });
+    y += 20;
 
-    // Cabeçalho da tabela
-    const tableHeaders = ['Descrição', 'Data', 'Valor'];
-    let y = 40;
+    // Função para desenhar cabeçalho da tabela
+    const drawTableHeader = () => {
+        pdf.setFontSize(12);
+        pdf.text('Descrição', 20 + columnWidths[0] / 2, y + rowHeight / 2, { align: 'center' });
+        pdf.text('Data', 100 + columnWidths[1] / 2, y + rowHeight / 2, { align: 'center' });
+        pdf.text('Valor', 150 + columnWidths[2] / 2, y + rowHeight / 2, { align: 'center' });
 
-    pdf.setFontSize(12);
-    pdf.text('Descrição', 20, y);
-    pdf.text('Data', 100, y);
-    pdf.text('Valor', 160, y);
-    y += 10;
+        // Desenhar linha abaixo do cabeçalho
+        pdf.line(20, y + rowHeight, 190, y + rowHeight);
+        y += rowHeight;
+    };
 
-    // Traduzir categoria
+    // Inicializa o cabeçalho da tabela
+    drawTableHeader();
+
+    // Função para traduzir categoria
     const translateCategory = (category) => {
         const categoryNames = {
             salary: 'Salário',
@@ -214,19 +229,43 @@ function exportToPDF() {
         return categoryNames[category] || 'Outros';
     };
 
+    // Função para verificar altura e adicionar nova página
+    const checkPageHeight = () => {
+        if (y + rowHeight > usableHeight + marginTop) {
+            pdf.addPage();
+            y = marginTop;
+            drawTableHeader();
+        }
+    };
+
+    // Função para desenhar uma linha da tabela
+    const drawRow = (description, date, amount) => {
+        // Desenhar células da linha
+        pdf.rect(20, y, columnWidths[0], rowHeight); // Descrição
+        pdf.rect(100, y, columnWidths[1], rowHeight); // Data
+        pdf.rect(150, y, columnWidths[2], rowHeight); // Valor
+
+        // Centralizar texto dentro das células
+        const centerY = y + rowHeight / 2 + 3; // Ajuste vertical (depende da fonte)
+        pdf.text(description, 20 + columnWidths[0] / 2, centerY, { align: 'center' });
+        pdf.text(date, 100 + columnWidths[1] / 2, centerY, { align: 'center' });
+        pdf.text(amount, 150 + columnWidths[2] / 2, centerY, { align: 'center' });
+    };
+
     // Listar as transações
     transactions.forEach(transaction => {
+        checkPageHeight();
+
         const description = `${transaction.description} (${translateCategory(transaction.category)})`;
         const date = new Date(transaction.date).toLocaleDateString('pt-BR');
         const amount = formatCurrency(transaction.amount);
 
-        pdf.text(description, 20, y);
-        pdf.text(date, 100, y);
-        pdf.text(amount, 160, y);
-        y += 10;
+        drawRow(description, date, amount); // Desenhar linha para a transação
+        y += rowHeight; // Incrementar posição vertical
     });
 
-    // Linha separadora
+    // Linha separadora final
+    checkPageHeight();
     pdf.line(20, y, 190, y);
     y += 10;
 
@@ -241,6 +280,7 @@ function exportToPDF() {
 
     const totalBalance = totalIncome - totalExpenses;
 
+    checkPageHeight();
     pdf.text(`Receitas: ${formatCurrency(totalIncome)}`, 20, y);
     y += 10;
     pdf.text(`Despesas: ${formatCurrency(totalExpenses)}`, 20, y);
@@ -250,6 +290,8 @@ function exportToPDF() {
     // Salvar o PDF
     pdf.save('Relatorio_Transacoes.pdf');
 }
+
+
 
 // Atualizar o UI e Carregar o Gráfico:
 updateUI();
