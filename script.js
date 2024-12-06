@@ -18,9 +18,15 @@ closeModal.addEventListener('click', () => {
     transactionModal.classList.add('hidden');
 });
 
+// Adicionar evento para o botão de cancelamento
+const cancelModal = document.getElementById('cancelModal');
+cancelModal.addEventListener('click', () => {
+    transactionModal.classList.add('hidden');
+});
+
 transactionForm.addEventListener('submit', (e) => {
     e.preventDefault();
-    
+
     const transaction = {
         id: Date.now(),
         description: document.getElementById('description').value,
@@ -32,7 +38,7 @@ transactionForm.addEventListener('submit', (e) => {
 
     transactions.push(transaction);
     localStorage.setItem('transactions', JSON.stringify(transactions));
-    
+
     updateUI();
     transactionForm.reset();
     transactionModal.classList.add('hidden');
@@ -69,11 +75,11 @@ function updateUI() {
     const totalIncome = transactions
         .filter(t => t.type === 'income')
         .reduce((sum, t) => sum + t.amount, 0);
-    
+
     const totalExpenses = transactions
         .filter(t => t.type === 'expense')
         .reduce((sum, t) => sum + t.amount, 0);
-    
+
     const totalBalance = totalIncome - totalExpenses;
 
     document.getElementById('totalBalance').textContent = formatCurrency(totalBalance);
@@ -112,9 +118,9 @@ function updateUI() {
         transactionsList.classList.remove('scrollable');
     }
 
-         // Verificar se a lista de transações tem 5 ou mais itens
+    // Verificar se a lista de transações tem 5 ou mais itens
 
-        renderChart(); // Atualizando o gráfico após atualizar a UI
+    renderChart(); // Atualizando o gráfico após atualizar a UI
 }
 
 // Gráficos com Chart.js
@@ -166,7 +172,7 @@ function renderChart() {
                     y: {
                         beginAtZero: true,
                         ticks: {
-                            callback: function(value) { return 'R$ ' + value.toFixed(2); }
+                            callback: function (value) { return 'R$ ' + value.toFixed(2); }
                         }
                     }
                 },
@@ -180,7 +186,6 @@ function renderChart() {
     }
 }
 
-// Exportar para PDF
 document.getElementById('downloadListBtn').addEventListener('click', exportToPDF);
 
 function exportToPDF() {
@@ -223,7 +228,7 @@ function exportToPDF() {
             food: 'Alimentação',
             transport: 'Transporte',
             housing: 'Moradia',
-            entertainment: 'Entretenimento',
+            entertainment: 'Lazer',
             other: 'Outros'
         };
         return categoryNames[category] || 'Outros';
@@ -239,7 +244,7 @@ function exportToPDF() {
     };
 
     // Função para desenhar uma linha da tabela
-    const drawRow = (description, date, amount) => {
+    const drawRow = (description, date, amount, type) => {
         // Desenhar células da linha
         pdf.rect(20, y, columnWidths[0], rowHeight); // Descrição
         pdf.rect(100, y, columnWidths[1], rowHeight); // Data
@@ -249,7 +254,13 @@ function exportToPDF() {
         const centerY = y + rowHeight / 2 + 3; // Ajuste vertical (depende da fonte)
         pdf.text(description, 20 + columnWidths[0] / 2, centerY, { align: 'center' });
         pdf.text(date, 100 + columnWidths[1] / 2, centerY, { align: 'center' });
-        pdf.text(amount, 150 + columnWidths[2] / 2, centerY, { align: 'center' });
+
+        // Definir cor e sinal para valores
+        const color = type === 'income' ? 'green' : 'red';
+        const prefix = type === 'income' ? '+' : '-';
+        pdf.setTextColor(color);
+        pdf.text(`${prefix}${amount}`, 150 + columnWidths[2] / 2, centerY, { align: 'center' });
+        pdf.setTextColor('black'); // Resetar cor do texto
     };
 
     // Listar as transações
@@ -260,7 +271,7 @@ function exportToPDF() {
         const date = new Date(transaction.date).toLocaleDateString('pt-BR');
         const amount = formatCurrency(transaction.amount);
 
-        drawRow(description, date, amount); // Desenhar linha para a transação
+        drawRow(description, date, amount, transaction.type); // Desenhar linha para a transação
         y += rowHeight; // Incrementar posição vertical
     });
 
@@ -291,14 +302,9 @@ function exportToPDF() {
     pdf.save('Relatorio_Transacoes.pdf');
 }
 
-
-
 // Atualizar o UI e Carregar o Gráfico:
 updateUI();
 renderChart();
-
-
-
 
 // Exportar para WhatsApp (sem emojis)
 document.getElementById('exportToWhatsappBtn').addEventListener('click', () => {
@@ -348,7 +354,6 @@ document.getElementById('exportToWhatsappBtn').addEventListener('click', () => {
     // Abrir no WhatsApp
     window.open(whatsappUrl, '_blank');
 });
-
 
 // Atualizar o UI e Carregar o Gráfico:
 updateUI();
